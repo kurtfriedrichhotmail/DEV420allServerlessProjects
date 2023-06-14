@@ -1,0 +1,158 @@
+[1]  create a folder, call it mongowriter,
+open Code on that folder
+
+[2] click F1 and choose  
+Terminal:  Create New Terminal 
+
+click F1 again to open command palette;   choose 
+Azure functions Create New Project       
+	select the default folder we just created
+	seledct javascript for language
+ 	select Model V3
+	select HTTP trigger for you template  ( we will "use" our function by making an http get call to it)
+	Name it  yournamemongowriter
+	Authorization level is anonyomous
+
+[3] After it completes, in the terminal window, enter 
+
+func start
+
+when it is done, hover over the URL and do a Cntr Click to run our new function locally  from a browser.  Make sure it works.
+
+[4] do ctrl C to stop app, then 
+
+$ npm install mongodb
+=======================================
+
+module.exports = async function (context, req) {
+    const MongoClient = require('mongodb').MongoClient;
+    const connect = async () => {
+        const client = MongoClient.connect('mongodb://kurtaccount:iW blah blah Name=@kurtaccount@' );  // replace with your connection string
+        return client;
+    }
+    const name = (req.query.name || (req.body && req.body.name));
+
+    let testRecord = {
+        "name": "Aztecea", 
+        "city": "Bellevue", 
+        "cuisine": "Mexican", 
+        "stars": 3, 
+        "poster": "Kurt"
+        }
+let result = "";
+    try {
+        const client = await connect();
+        const database = client.db("restdb");
+        context.log("connected to DB successfully");
+    
+         // Insert a single document
+         result = await database.collection('restaurants').insertOne(testRecord);
+         // Close connection
+        client.close();
+    
+      
+      } catch (err) {
+        console.log(err.stack);
+         // Close connection
+        client.close();
+      }
+    
+    context.res = {
+        // status: 200, /* Defaults to 200 */
+        body: result
+    };
+}
+
+look in azure portal, under cosmos db under data explorer and make sure it adds the test record.
+
+When that works, change the code to
+
+
+module.exports = async function (context, req) {
+    const MongoClient = require('mongodb').MongoClient;
+    const connect = async () => {
+        const client = MongoClient.connect('mongodb://kurtaccount:iWHP blah blah blah Name=@kurtaccount@' );  // put in your conn string
+        return client;
+    }
+    const newPost = (req.body);
+ 
+let result = "";
+    try {
+        const client = await connect();
+        const database = client.db("restdb");
+        context.log("connected to DB successfully");
+    
+         // Insert a single document
+         result = await database.collection('restaurants').insertOne(newPost);
+         // Close connection
+        client.close();
+    
+      
+      } catch (err) {
+        console.log(err.stack);
+         // Close connection
+        client.close();
+      }
+    
+    context.res = {
+        // status: 200, /* Defaults to 200 */
+        body: result
+    };
+}
+
+
+===================
+
+when that works, open local.settings.json and add this again
+
+,
+  "Host": {
+    "LocalHttpPort": 7071,
+    "CORS": "*"
+  }
+
+
+when you test this, start the local copy of mongowriter, but do not click on the URL
+================================
+
+[5] Lets deply to Azure  (you might get blasted with repeated messages about your
+key ring, click cancel over and over until it gives you a normal login request)
+
+Now select the Azure logo to open the Azure Explorer, select RESOURCES and do the sign in,
+
+go back to Explorer view, under resources, right click Function App
+
+choose  Create Function App in Azure
+
+At the next prompt, enter a globally unique name for your Function App and press Enter.  
+yournamerestaurant  should probably work
+
+choose node v18
+
+At the next prompt, select an Azure region.   East US  should be a good one.
+
+notice the right most tab in the terminal window, Azure: Activity Log
+after a while it lets you open an output window, click that, and you will see the URL of your function.
+(I think also when done is will briefly show a button to open a browser to your function)
+but I just ctrl click the URL it shows me.
+
+https://kurtrestaurantwriter.azurewebsites.net
+
+it will fail.  Now
+In Visual Studio Code, press F1 to open the command palette. 
+In the command palette, search for and select    Azure Functions: Add New Setting....
+
+Select the name of your function app, then enter 
+AzureWebJobsFeatureFlags    for the new app setting name, and press Enter.
+
+For the value, type EnableWorkerIndexing and press Enter.
+
+Now right click on your fucntion name,  yournamemongowriter
+and choose deploy to function app  to push revised version to cloud
+wait for that to complete
+
+it will show a revised URL  with /api/function name added
+
+https://yournamemongowriter.azurewebsites.net/api/yournamemongowriter
+
+got to azure portal and set cors to *

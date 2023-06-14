@@ -1,0 +1,17 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=kurtwritetopsf70ea7;AccountKey=NdbDXdNrav6+scPhKU25NeAld32QkYao5ILxtg/JS38/0ZGD+HQ8lAkCBM/AczDgD/UVUQU/cAaf+ASth79OWw==;EndpointSuffix=core.windows.net",
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "FUNCTIONS_EXTENSION_VERSION": "~4",
+    "WEBSITE_NODE_DEFAULT_VERSION": "~18",
+    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING": "DefaultEndpointsProtocol=https;AccountName=kurtwritetopsf70ea7;AccountKey=NdbDXdNrav6+scPhKU25NeAld32QkYao5ILxtg/JS38/0ZGD+HQ8lAkCBM/AczDgD/UVUQU/cAaf+ASth79OWw==;EndpointSuffix=core.windows.net",
+    "WEBSITE_CONTENTSHARE": "kurtwritetops93bd7f",
+    "WEBSITE_RUN_FROM_PACKAGE": "1",
+    "APPINSIGHTS_INSTRUMENTATIONKEY": "00e8ccb1-e84d-45bf-82e3-570c3a727f53"
+  },
+  "Host": {
+    "LocalHttpPort": 7071,
+    "CORS": "*"
+  }
+}

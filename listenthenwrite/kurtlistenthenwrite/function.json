@@ -1,0 +1,13 @@
+{
+  "disabled": false,
+  "bindings": [
+    {
+      "type": "webPubSubTrigger",
+      "direction": "in",
+      "name": "data",
+      "hub": "kurtpubsub.webpubsub.azure.com",
+      "eventName": "message",
+      "eventType": "user"
+    }
+  ]
+}

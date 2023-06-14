@@ -1,0 +1,227 @@
+Let's do this in linux VM as it has node and npm installed
+
+started with this article:   Quickstart: Create a JavaScript function in Azure using Visual Studio Code
+https://learn.microsoft.com/en-us/azure/azure-functions/create-first-function-vs-code-node?pivots=nodejs-model-v4
+
+
+[1] 
+- create a folder,
+- open Code on that folder
+- install Azure Function extension using the Extension left menu, 
+	search  fro Azure Functions, click install
+
+	search  fro Azure Tools, click install
+
+	might prompt you to install Azure Functions core tools, do it
+
+if it doesn't prompt for that, then per this article
+  (https://github.com/Azure/azure-functions-core-tools#installing)
+   open a  terminal command window and enter  
+  
+
+wget -q https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb
+
+sudo dpkg -i packages-microsoft-prod.deb
+
+sudo apt-get update
+
+sudo apt-get install azure-functions-core-tools-4   (for the Tools, we do want V4, but when we create Functions, we want V3 functions
+
+
+
+>> IF  <<  you have trouble with that, here is anther guide:
+
+article: Install the Azure Functions Core Tools
+
+https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local?tabs=v4%2Cwindows%2Ccsharp%2Cportal%2Cbash#install-the-azure-functions-core-tools
+
+article contains instructions, make sure you click the Linux tab,  V4.
+
+
+Now close Code and restart.
+
+============================================================
+
+[2] Now we can create our first Azure Serverless Function and run/ debug this locally, 
+click F1 and choose  (if you are on laptop, you need to figure out
+how to click F1, since laptops use that row of keys for 2 functions,
+generally there is a "Function" key in the lower left area of your
+keyboard you have to to hold down as you click the F1 key.
+
+Find in the large list of commands this one:
+
+Terminal:  Create New Terminal 
+
+click F1 again to open command palette;   choose 
+Azure functions Create New Project        (carefull, lots of similar choices, get the correct one)
+	select the default folder we just created
+	seledct javascript for language
+ 	select Model V3
+	select HTTP trigger for you template  ( we will "use" our function by making an http get call to it)
+	Name it  yournamemongoreader  (don't use caps)
+
+	Authorization level is anonyomous
+
+[3] After it completes, in the terminal window, enter 
+
+func start
+
+when it is done, hover over the URL and do a Cntr Click to run our new function locally  from a browser.
+
+http://localhost:7071/api/yournamemongoreader/
+now edit the url in the browser and pass in a name, like
+http://localhost:7071/api/yournamemongoreader/?name=santa
+
+Look at what we have:
+1: a context (server side settings and data) and req object  (data from client)
+2: log the event
+4: get a value from the URL of the req body
+9: context.res method which returns the response 
+
+
+================================
+
+[4] Lets deply to Azure  (you might get blasted with repeated messages
+ about your key ring, click cancel over and over until it gives you a normal login request)
+
+Now select the Azure logo to open the Azure Explorer, select RESOURCES and do the sign in,
+
+go back to Explorer view, under resources, right click Function App
+
+choose  Create Function App in Azure
+
+At the next prompt, enter a globally unique name for your Function App and press Enter.  
+yournamemongowriter  should probably work
+
+choose node v18
+
+At the next prompt, select an Azure region.   East US  should be a good one.
+
+notice the right most tab in the terminal window, Azure: Activity Log
+after a while it lets you open an output window, click that, and you will see the URL of your function.
+(I think also when done it will briefly show a button to open a browser to your function)
+but I just ctrl click the URL it shows me.
+
+https://yournamemongoreader.azurewebsites.net
+
+That URL it will fail.  Now
+In Code, press F1 to open the command palette. 
+In the command palette, search for and select    
+Azure Functions: Add New Setting
+
+Select the name of your function app as suggested in the bluee field under the box,
+ then enter 
+AzureWebJobsFeatureFlags
+  for the new app setting name, and press Enter.
+
+For the value, type 
+EnableWorkerIndexing
+and press Enter.
+
+Now right click on your function name,  yournamemongoreader
+and choose deploy to function app  to push revised version to cloud
+wait for that to complete
+
+it will show a revised URL  with /api/function name added
+
+https://yournamemongoreader.azurewebsites.net/api/kurtrestaurant
+again, you can enter
+https://yournamemongoreader.azurewebsites.net/api/kurtrestaurant/?name=santa
+============================================
+
+[5] Lets enhance it a bit
+
+now add a new file at the top level of your project, at same level as index.js:
+    restaurant-data.js  (be careful not to have spaces in front or behind the file name)
+
+paste in this object
+
+===============================================
+
+const data = {
+    restaurants: [
+       {
+         name: 'McDonalds',
+         city: 'Redmond',
+         cuisine: 'fast food',
+         stars: 1,
+		  poster: 'Kurt'
+       },
+       {
+         name: 'Dough Zone',
+         city: 'Redmond',
+         cuisine: 'Dim Sum',
+         stars: 3,
+         poster: 'Kurt'
+        },
+        {
+          name: 'Din Tai Fung',
+         city: 'Bellevue',
+         cuisine: 'Dim Sum',
+         stars: 5,
+         poster: 'Kurt'
+        }
+    ]
+};
+  
+const getRestaurants = () => {
+    return data.restaurants;
+}
+
+module.exports = {getRestaurants };
+
+========================================
+
+[6] now replace this code in our index.js file with
+
+module.exports = async function (context, req) {
+    context.log('Kurts JavaScript HTTP trigger function processed a request.');
+    const data = require( '../kurtRestaurant/restaurant-data');
+    let returndata = data.getRestaurants();
+
+    var jsonReturn = JSON.stringify(returndata);
+    try {
+        context.res = {
+            // status: 200, /* Defaults to 200 */
+            body: jsonReturn
+        };
+    } catch (error) {
+        context.res.status(500).send(error);
+        }
+};
+
+restart, and see if you get the data back in the browser
+
+======================== 
+
+[7] redeploy to server
+
+click azure tab, make sure gold key is still showing (logged into Azure)
+right click on your function app name, select
+Deploy to Function App
+
+click on to see if data comes back
+
+https://yournamemongoreader.azurewebsites.net/api/yournamemongoreader
+
+
+[8] ===================== fix CORS  ============
+
+ to run ca lient and function both local, 
+in your "local.settings.json" you  add CORS": "*" like so:
+{
+  "IsEncrypted": false,
+  "Values": {
+
+  },
+  "Host": {
+    "LocalHttpPort": 7071,
+    "CORS": "*"
+  }
+}
+
+For the azure deployment, go to Azure portal, select the function, 
+find the CORS setting, and set it to *
+
+
+[9] run client app to get the data

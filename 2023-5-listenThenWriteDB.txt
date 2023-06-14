@@ -1,0 +1,239 @@
+[1]
+watch this vid on Web Sockets
+https://youtu.be/1BfCnjr_Vjg
+
+watch this vid on Azure PubSub just up to the up to 5:22 mark
+https://youtu.be/2rHsZrSCYs4
+
+[2] create a folder, call it listenthenwrite ,
+open Code on that folder
+
+click F1 and choose  
+Terminal:  Create New Terminal 
+
+click F1 again to open command palette;   choose 
+Azure functions Create New Project       
+	select the default folder we just created
+	seledct javascript for language
+ 	select Model V3
+	select HTTP trigger for you template  
+	Name it  yournamelistenthenwrite
+	Authorization level is anonyomous
+
+[3] After it completes, in the terminal window, enter 
+
+func start
+
+when it is done, hover over the URL and do a Cntr Click to run our new function 
+locally from a browser just to make sure it works.
+
+[4] do ctrl C to stop app, then 
+
+$ npm install mongodb
+=======================================
+
+[5]
+edit your package.json file
+and make sure you list these dependencies
+
+"mongodb": "^5.5.0",
+"@azure/web-pubsub": "^1.0.0",
+"@azure/web-pubsub-express": "^1.0.0",
+"ws": "^7.4.4"
+
+run npm install if you had to edit
+
+[6] replace the code in index.js with
+
+
+// start of replacement code
+const WebSocket = require('ws');
+const { WebPubSubServiceClient } = require('@azure/web-pubsub');
+
+const MongoClient = require('mongodb').MongoClient;
+const connect = async () => {
+   // paste in your conn string below
+  client = await MongoClient.connect('mongodb://kurtcosmosaccount:jdE blah blah blah me=@kurtcosmosaccount@' ); 
+  return client;
+}
+
+async function main() {
+  const hub = "kurtpubsub.webpubsub.azure.com";
+  var connectionString = "Endpoint=https://kurtpubsub.webpubsub.azure.com;AccessKey=p/iuO4B31PVliio9K6jmjLv30+M7u6MXBN5jxW0mf94=;Version=1.0;";
+// we will all use the teacher's PubSub service
+  let serviceClient = new WebPubSubServiceClient(connectionString, hub);
+  let token = await serviceClient.getClientAccessToken();
+  let ws = new WebSocket(token.url);
+  ws.on('open', () => console.log('connected kurt'));
+  ws.on('message', data => {
+    let newRecord = JSON.parse(data);  // removes the bad " " from the property names
+     // got the data, now write to mongo
+     // have to wait for 2nd promise to get the client object
+     connect().then( console.log("connected to mongo"))
+     .then((client) => { writeDB(client, newRecord)});
+     console.log(newRecord);
+   });
+}
+
+main();
+
+function writeDB(client, pNewRecord)
+{
+  try {
+    const database = client.db("restdb");
+    console.log("connected to DB successfully");
+      // Insert a single document
+      
+      database.collection('restaurants').insertOne(pNewRecord)
+      .then(console.log("mongo did not complain"));
+      //client.close();
+    } catch (err) {
+      console.log(err.stack);
+      client.close();     // Close connection if app is dying
+    }
+}
+
+exports.index = main;
+
+// end of replacement code
+
+the connection string for PubSub is correct, but you need to
+replace the connection string for the Cosmos DB
+
+============================
+
+
+[7]  open local.settings.json and add this again
+
+,
+  "Host": {
+    "LocalHttpPort": 7071,
+    "CORS": "*"
+  }
+
+
+open function.json and replace all (the http trigger code) with this PubSub trigger
+
+{
+  "disabled": false,
+  "bindings": [
+    {
+      "type": "webPubSubTrigger",
+      "direction": "in",
+      "name": "data",
+      "hub": "kurtpubsub.webpubsub.azure.com",
+      "eventName": "message",
+      "eventType": "user"
+    }
+  ]
+}
+
+(If you run it locally now, you will get a giant error message,
+but it actually should still work ... but to get rid of that error message
+do these next 2 steps)
+
+(1) create a new function app and 
+deploy this code to the new Azure Function.
+
+(2) Then, in Code
+
+click F1 and find command 
+Azure Functions: Download Remote Settings
+when it says it will overwrite your files say yes to all
+
+You can't tell if this is working yet, as you need to jump down to step [8]
+and stop your mongo writer insgtance in azure, and create a new Function which
+the client POSTs to, but this new one writes to the PubSub, not directly to mogno.
+
+After you complete the rest of this document, 
+if you are lucky, at this point your set of projects should be working,
+you could be running the client html program locally or as a new Azure Static Web App.
+Just make sure to edit the client javascript file to set the URLs correctly for its
+GET and POST calls.
+
+If its not working, you can stop the Azure copy of listingandwrite and work on the local copy.
+
+When you are debugging the local copy in Code, you need to start it by typing
+func start, but do not click on the green URL
+
+
+================================
+
+ [8] we need a new Function, no need to delete the existing write to mongo fucntion,
+we might need it for debugging,
+
+but clone it, name the clone folder yournamewritetopubsub, and in Code, rename the function folder name to also
+be yournamewritetopubsub
+and then make it write to the PubSub service instead with this replacement code:
+
+module.exports = async function (context, req) {
+    const { WebPubSubServiceClient } = require('@azure/web-pubsub');
+    const newPost = (req.body);
+ 
+let result = "";
+    try {
+               
+      //console.log(newPost);
+        //let message = JSON.stringify(newPost) // stringify to SB messes up the object
+        let message = newPost;
+        
+          const hub = "kurtpubsub.webpubsub.azure.com";
+          var connectionString = "Endpoint=https://kurtpubsub.webpubsub.azure.com;AccessKey=p/iuO4B31PVliio9K6jmjLv30+M7u6MXBN5jxW0mf94=;Version=1.0;";
+          let serviceClient = new WebPubSubServiceClient(connectionString, hub);
+          //console.log(message);
+        // by default it uses `application/json`, specify contentType as `text/plain` if you want plain-text
+        serviceClient.sendToAll(message, { contentType: "application/json" })
+        .then(console.log(message));
+//=====================================================================================
+      
+      } catch (err) {
+        console.log(err.stack);
+         // Close connection
+        //client.close();
+      }
+    
+    context.res = {
+        // status: 200, /* Defaults to 200 */
+        body: result
+    };
+}
+
+[9]  deploy to Azure  
+
+Now select the Azure logo to open the Azure Explorer, select RESOURCES and do the sign in,
+
+go back  under resources, right click Function App
+
+choose  Create Function App in Azure
+
+At the next prompt, enter a globally unique name for your Function App and press Enter.  
+yournamewritetopubsub  is what I used
+
+choose node v18
+
+At the next prompt, select an Azure region.   East US  should be a good one.
+
+
+right click on the new function and choose deploy,
+when it is done, it shows the URL, You need that URL for your client HTML program
+in the POST section
+
+In Visual Studio Code, press F1 to open the command palette. 
+In the command palette, search for and select    Azure Functions: Add New Setting....
+
+Select the name of your function app, 
+
+then enter 
+AzureWebJobsFeatureFlags    for the new app setting name, and press Enter.
+
+For the value, type EnableWorkerIndexing and press Enter.
+
+Now right click on your function name,  
+and choose deploy to function app  to push revised version to cloud
+wait for that to complete
+
+
+got to azure portal and set cors to *
+
+modify your client code to do its write to this url instead of the simple
+mongo writer.

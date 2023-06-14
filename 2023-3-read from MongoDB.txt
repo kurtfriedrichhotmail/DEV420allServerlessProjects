@@ -1,0 +1,130 @@
+2023  - read from MongoDB
+[1] will will upgrade our previous project and make it read Mongo
+
+
+[2] install the Azure Databases extension in Visual Studio Code.
+
+[3] go to  https://portal.azure.com/#home, 
+in the search box, look for Create  Cosmos DB for MongoDB
+fill out those screens until it succeeds 
+it will seem like you are creating an "account" and your DB
+service name will have the word account in it.
+
+[4] then in Code, click F1, and in the command palette search for: 
+Azure Databases: Create Server
+
+select:     Azure Cosmos DB for MongoDB API
+
+make up a name for the account owner  and make a note of it    kurtaccount
+
+choose Serverless as the Capacity
+
+use the same resoruce group you used for the serverless app  (you can go
+to Azure portal to get that if you forgot:   
+https://portal.azure.com/#home
+
+choose the same geo as you used for the serveless, I used US East
+
+[5] Create an Azure Cosmos DB database and collection:
+
+Select the Azure icon in the Activity bar, expand Resources > Azure Cosmos DB, right-click  your account, and select Create database....
+
+pick a name for DB:  restdb
+
+pick a name for the collection:  restaurants
+
+if it asks for a partition key for the collection type
+ /id as the partition key.
+mine did not?
+
+[6] Open the Azure left tab, expand the Azure Cosmos DB and right click on the account
+mine is kurtaccount (MongoDB)  choose:
+ copy connection string, save that
+
+mongodb://kurtaccount:iWHPnwCMpynthn4ksEyMt7c2v81AUszjnF1nm8UyRMia8HL2GPYZvitkrHK7YKQeTelEeQOkmPPVACDbXDBBuA%3D%3D@kurtaccount.mongo.cosmos.azure.com:10255/?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=120000&appName=@kurtaccount@
+
+[7]  
+now use the Azure portal, open your cosmo account, and find the Data Explorer tab,
+then add a Collection  restaurants
+and then 2 documents
+
+
+click on New Document, it will create a new record looking like
+
+"id" : "replace_with_new_document_id",
+delete that and then paste in the first of these
+	
+
+"name": "Dough Zone", 
+"city": "Redmond", 
+"cuisine": "Dim Sum", 
+"stars": 3, 
+"poster": "Kurt"
+
+Click the Save,  then add a second one
+
+"name": "McDonalds", 
+"city": "Redmond", 
+"cuisine": "fast food", 
+"stars": 1, 
+"poster": "Kurt"
+
+Ignore the  underlined red ObjectID
+
+[8] back in Code, in the terminal window,  do ctrl C to stop app, then 
+
+$ npm install mongodb
+
+now edit index.js  
+under the line:    
+
+remove old code and replace with this:
+You need to paste in your Mongo Connection String
+
+  =================================================
+
+
+	
+	module.exports = async function (context, req) {
+   	
+    	const MongoClient = require("mongodb").MongoClient;
+    	const connect = async () => {
+            	const client = MongoClient.connect('mongodb://kurtcosmosaccount:jd-blah blah blah 68ARA==@kurtcosmosaccount.mongo.cosmos.azure.com:10255/?ssl=true&retrywrites=false&maxIdleTimeMS=120000&appName=@kurtcosmosaccount@' );
+            	return client;
+        	}
+         	let cityname = (req.query.name || (req.body && req.body.name));
+	
+        	try {
+            	const client = await connect();
+            	const database = client.db("restdb");
+            	context.log("connected to DB successfully");
+            	let returndata;
+            	if(cityname == "all"){
+                	returndata = await database.collection("restaurants").find().toArray(); 
+                	client.close();     // Close connection
+            	}
+            	else{
+                	returndata = await database.collection("restaurants").find({city: cityname}).toArray();  
+                	client.close();     // Close connection
+            	}
+           	
+            	context.res = {
+                	// status: 200, /* Defaults to 200 */
+                	body: returndata
+            	};
+        	} catch (error) {
+            	context.res.status(500).send(error);
+    	
+            	}
+    	};  
+    	
+
+
+
+
+[9] restart:  func start
+run the client and see if you get data
+
+repush to Azure, change the client string, and verify that works
+
+
